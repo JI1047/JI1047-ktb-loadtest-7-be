@@ -168,8 +168,8 @@ public class AuthController {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             
-            // 단일 세션 정책을 위해 기존 세션 제거
-            sessionService.removeAllUserSessions(user.getId());
+//            // 단일 세션 정책을 위해 기존 세션 제거
+//            sessionService.removeAllUserSessions(user.getId());
 
             // Create new session
             SessionMetadata metadata = new SessionMetadata(
@@ -241,7 +241,7 @@ public class AuthController {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
                 String userId = (String) details.get("userId");
-                
+
                 if (userId != null) {
                     sessionService.removeSession(userId, sessionId);
                     
