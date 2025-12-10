@@ -68,6 +68,26 @@ public class UserService {
     }
 
     /**
+     * 프로필 이미지 조회
+     * @param email 사용자 이메일
+     */
+    public ProfileImageResponse getProfileImage(String email) {
+        // 사용자 조회
+        User user = userRepository.findByEmail(email.toLowerCase())
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+
+        String profileImageUrl = user.getProfileImage();
+
+        log.info("프로필 이미지 조회 완료 - User ID: {}, Image Url: {}", user.getId(), profileImageUrl);
+
+        return new ProfileImageResponse(
+                true,
+                "프로필 이미지를 조회합니다.",
+                profileImageUrl
+        );
+    }
+
+    /**
      * 프로필 이미지 업로드
      * @param email 사용자 이메일
      */
