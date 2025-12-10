@@ -29,6 +29,8 @@ public class SecurityConfig {
     private final JwtDecoder jwtDecoder;
     private final CustomBearerTokenResolver bearerTokenResolver;
     private final SessionAwareJwtAuthenticationConverter jwtAuthenticationConverter;
+    private static boolean corsWarned = false;
+
 
     private static final List<String> CORS_ALLOWED_ORIGINS = List.of("*");
 
@@ -94,7 +96,8 @@ public class SecurityConfig {
 
     private CorsConfiguration createCorsConfiguration() {
         CorsConfiguration config = new CorsConfiguration();
-        if (CORS_ALLOWED_ORIGINS.contains("*")) {
+        if (!corsWarned && CORS_ALLOWED_ORIGINS.contains("*")) {
+            corsWarned = true;
             log.warn("╔═══════════════════════════════════════════════════════════════════════════════╗");
             log.warn("║                           ⚠️  CORS 보안 경고  ⚠️                              ║");
             log.warn("╠═══════════════════════════════════════════════════════════════════════════════╣");
@@ -104,9 +107,10 @@ public class SecurityConfig {
             log.warn("║  🔓 예상하지 못한 도메인에서의 요청도 수용됩니다:                           ║");
             log.warn("║     예시) https://a-team-front.com → https://b-team-backend.com             ║");
             log.warn("║                                                                               ║");
-            log.warn("║  💡 팀 도메인으로 CORS 설정하세요.         ║");
+            log.warn("║  💡 팀 도메인으로 CORS 설정하세요.                                           ║");
             log.warn("╚═══════════════════════════════════════════════════════════════════════════════╝");
         }
+
         config.setAllowedOriginPatterns(CORS_ALLOWED_ORIGINS);
         config.setAllowedMethods(CORS_ALLOWED_METHODS);
         config.setAllowedHeaders(CORS_ALLOWED_HEADERS);
