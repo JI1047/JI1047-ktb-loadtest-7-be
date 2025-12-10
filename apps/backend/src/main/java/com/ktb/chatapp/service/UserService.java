@@ -3,13 +3,16 @@ package com.ktb.chatapp.service;
 import com.ktb.chatapp.dto.ProfileImageResponse;
 import com.ktb.chatapp.dto.UpdateProfileRequest;
 import com.ktb.chatapp.dto.UserResponse;
+import com.ktb.chatapp.dto.ValidationError;
 import com.ktb.chatapp.model.User;
 import com.ktb.chatapp.repository.UserRepository;
 import com.ktb.chatapp.util.FileUtil;
+import io.micrometer.core.instrument.config.validate.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +31,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final FileService fileService;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -57,9 +61,13 @@ public class UserService {
         User user = userRepository.findByEmail(email.toLowerCase())
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
 
-        // 프로필 정보 업데이트
         user.setName(request.getName());
         user.setUpdatedAt(LocalDateTime.now());
+
+        if ((request.getNewPassword() != null) && !(request.getNewPassword().isEmpty())
+                && (request.getNewPassword().equals(request.getConfirmPassword()))) {
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        }
 
         User updatedUser = userRepository.save(user);
         log.info("사용자 프로필 업데이트 완료 - ID: {}, Name: {}", user.getId(), request.getName());
