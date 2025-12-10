@@ -1,9 +1,9 @@
-com/ktb/chatapp/config/MongoConfig.class
-com/ktb/chatapp/annotation/RateLimit.class
-com/ktb/chatapp/util/BannedWordChecker.class
 com/ktb/chatapp/config/JwtConfig$CustomJwtValidator.class
-com/ktb/chatapp/config/OpenApiConfig.class
-com/ktb/chatapp/config/BannedWordConfig.class
+com/ktb/chatapp/util/BannedWordChecker.class
 com/ktb/chatapp/config/JwtConfig.class
-com/ktb/chatapp/annotation/RateLimit$LimitScope.class
+com/ktb/chatapp/annotation/RateLimit.class
+com/ktb/chatapp/config/OpenApiConfig.class
 com/ktb/chatapp/ChatAppApplication.class
+com/ktb/chatapp/config/MongoConfig.class
+com/ktb/chatapp/config/BannedWordConfig.class
+com/ktb/chatapp/annotation/RateLimit$LimitScope.class
