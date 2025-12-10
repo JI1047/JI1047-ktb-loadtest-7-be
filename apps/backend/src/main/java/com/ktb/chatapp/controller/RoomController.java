@@ -267,7 +267,7 @@ public class RoomController {
 
         } catch (RuntimeException e) {
             if (e.getMessage().contains("비밀번호")) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(StandardResponse.error("비밀번호가 일치하지 않습니다."));
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
