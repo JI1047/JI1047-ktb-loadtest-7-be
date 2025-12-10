@@ -91,40 +91,6 @@ public class UserController {
     }
 
     /**
-     * 현재 사용자 비밀번호 변경
-     * */
-    @Operation(summary = "내 비밀번호 변경", description = "현재 로그인한 사용자의 비밀번호를 변경합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "비밀번호 수정 성공",
-                    content = @Content(schema = @Schema(implementation = UserUpdateResponse.class))),
-            @ApiResponse(responseCode = "400", description = "유효하지 않은 비밀번호",
-                    content = @Content(schema = @Schema(implementation = StandardResponse.class))),
-            @ApiResponse(responseCode = "401", description = "인증 실패",
-                    content = @Content(schema = @Schema(implementation = StandardResponse.class))),
-            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음",
-                    content = @Content(schema = @Schema(implementation = StandardResponse.class))),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류",
-                    content = @Content(schema = @Schema(implementation = StandardResponse.class)))
-    })
-    @PutMapping("/password")
-    public ResponseEntity<?> updateCurrentUserPassword(
-            Principal principal,
-            @Valid @RequestBody UpdatePasswordRequest updateRequest
-    ) {
-        try {
-            UserResponse response = userService.updateUserPassword(principal.getName(), updateRequest);
-            return ResponseEntity.ok(new UserUpdateResponse("비밀번호가 변경되었습니다.", response));
-        } catch (UsernameNotFoundException e) {
-            log.error("사용자 비밀번호 변경 실패: {}", e.getMessage());
-            return ResponseEntity.status(404).body(StandardResponse.error("사용자를 찾을 수 없습니다."));
-        } catch (Exception e) {
-            log.error("사용자 비밀번호 변경 중 오류 발생: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(StandardResponse.error("비밀번호 변경 중 오류가 발생했습니다."));
-        }
-    }
-
-
-    /**
      * 프로필 이미지 업로드
      */
     @Operation(summary = "프로필 이미지 업로드", description = "프로필 이미지를 업로드합니다. 최대 5MB까지 가능합니다.")

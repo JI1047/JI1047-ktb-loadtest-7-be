@@ -1,12 +1,13 @@
 package com.ktb.chatapp.service;
 
 import com.ktb.chatapp.dto.ProfileImageResponse;
-import com.ktb.chatapp.dto.UpdatePasswordRequest;
 import com.ktb.chatapp.dto.UpdateProfileRequest;
 import com.ktb.chatapp.dto.UserResponse;
+import com.ktb.chatapp.dto.ValidationError;
 import com.ktb.chatapp.model.User;
 import com.ktb.chatapp.repository.UserRepository;
 import com.ktb.chatapp.util.FileUtil;
+import io.micrometer.core.instrument.config.validate.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,29 +61,16 @@ public class UserService {
         User user = userRepository.findByEmail(email.toLowerCase())
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
 
-        // 프로필 정보 업데이트
         user.setName(request.getName());
         user.setUpdatedAt(LocalDateTime.now());
 
+        if ((request.getNewPassword() != null) && !(request.getNewPassword().isEmpty())
+                && (request.getNewPassword().equals(request.getCurrentPassword()))) {
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        }
+
         User updatedUser = userRepository.save(user);
         log.info("사용자 프로필 업데이트 완료 - ID: {}, Name: {}", user.getId(), request.getName());
-
-        return UserResponse.from(updatedUser);
-    }
-
-    /**
-     * 사용자 비밀번호 변경
-     * @param email 사용자 이메일
-     * */
-    public UserResponse updateUserPassword(String email, UpdatePasswordRequest request) {
-        User user = userRepository.findByEmail(email.toLowerCase())
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
-
-        //비밀번호 변경
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-
-        User updatedUser = userRepository.save(user);
-        log.info("사용자 비밀번호 업데이트 완료 - ID: {}, Name: {}", user.getId(), user.getName());
 
         return UserResponse.from(updatedUser);
     }
