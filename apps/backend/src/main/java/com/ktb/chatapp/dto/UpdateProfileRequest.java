@@ -13,8 +13,8 @@ public class UpdateProfileRequest {
     private String name;
 
     @ValidPassword
-    private String currentPassword;
+    private String newPassword;
 
     @ValidPassword
-    private String newPassword;
+    private String confirmPassword;
 }

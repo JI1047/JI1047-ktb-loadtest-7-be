@@ -65,7 +65,7 @@ public class UserService {
         user.setUpdatedAt(LocalDateTime.now());
 
         if ((request.getNewPassword() != null) && !(request.getNewPassword().isEmpty())
-                && (request.getNewPassword().equals(request.getCurrentPassword()))) {
+                && (request.getNewPassword().equals(request.getConfirmPassword()))) {
             user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         }
 
