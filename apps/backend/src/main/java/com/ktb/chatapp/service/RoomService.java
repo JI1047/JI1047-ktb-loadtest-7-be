@@ -16,12 +16,16 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.IdGenerator;
+import org.springframework.util.JdkIdGenerator;
 
 @Slf4j
 @Service
@@ -33,6 +37,10 @@ public class RoomService {
     private final MessageRepository messageRepository;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
+    @Qualifier("applicationTaskExecutor")
+    private final TaskExecutor taskExecutor;
+
+    private final IdGenerator idGenerator = new JdkIdGenerator();
 
     public RoomsResponse getAllRoomsWithPagination(
             com.ktb.chatapp.dto.PageRequest pageRequest, String name) {
@@ -157,26 +165,17 @@ public class RoomService {
         User creator = userRepository.findByEmail(name)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + name));
 
-        Room room = new Room();
-        room.setName(createRoomRequest.getName().trim());
-        room.setCreator(creator.getId());
-        room.getParticipantIds().add(creator.getId());
+        String roomId = idGenerator.generateId().toString().replace("-", "");
+        RoomResponse roomResponse = mapNewRoomResponse(roomId, createRoomRequest, creator);
 
-        if (createRoomRequest.getPassword() != null && !createRoomRequest.getPassword().isEmpty()) {
-            room.setHasPassword(true);
-            room.setPassword(passwordEncoder.encode(createRoomRequest.getPassword()));
-        }
+        taskExecutor.execute(() -> {
+            try {
+                persistRoom(roomId, createRoomRequest, creator);
+            } catch (Exception e) {
+                log.error("비동기 방 생성 실패 roomId={}, creator={}", roomId, creator.getId(), e);
+            }
+        });
 
-        Room savedRoom = roomRepository.save(room);
-        RoomResponse roomResponse = mapNewRoomResponse(savedRoom, creator);
-
-        // Publish event for room created
-        try {
-            eventPublisher.publishEvent(new RoomCreatedEvent(this, roomResponse));
-        } catch (Exception e) {
-            log.error("roomCreated 이벤트 발행 실패", e);
-        }
-        
         return roomResponse;
     }
 
@@ -219,16 +218,39 @@ public class RoomService {
         return room;
     }
 
-    private RoomResponse mapNewRoomResponse(Room room, User creator) {
+    private void persistRoom(String roomId, CreateRoomRequest createRoomRequest, User creator) {
+        Room room = new Room();
+        room.setId(roomId);
+        room.setName(createRoomRequest.getName().trim());
+        room.setCreator(creator.getId());
+        room.getParticipantIds().add(creator.getId());
+        room.setCreatedAt(LocalDateTime.now());
+
+        if (createRoomRequest.getPassword() != null && !createRoomRequest.getPassword().isEmpty()) {
+            room.setHasPassword(true);
+            room.setPassword(passwordEncoder.encode(createRoomRequest.getPassword()));
+        }
+
+        Room savedRoom = roomRepository.save(room);
+        RoomResponse roomResponse = mapNewRoomResponse(savedRoom.getId(), createRoomRequest, creator);
+
+        try {
+            eventPublisher.publishEvent(new RoomCreatedEvent(this, roomResponse));
+        } catch (Exception e) {
+            log.error("roomCreated 이벤트 발행 실패", e);
+        }
+    }
+
+    private RoomResponse mapNewRoomResponse(String roomId, CreateRoomRequest createRoomRequest, User creator) {
         UserResponse creatorSummary = UserResponse.from(creator);
         List<UserResponse> participantSummaries = List.of(creatorSummary);
 
-        LocalDateTime createdAt = room.getCreatedAt() != null ? room.getCreatedAt() : LocalDateTime.now();
+        LocalDateTime createdAt = LocalDateTime.now();
 
         return RoomResponse.builder()
-                .id(room.getId())
-                .name(room.getName())
-                .hasPassword(room.isHasPassword())
+                .id(roomId)
+                .name(createRoomRequest.getName().trim())
+                .hasPassword(createRoomRequest.getPassword() != null && !createRoomRequest.getPassword().isEmpty())
                 .creator(creatorSummary)
                 .participants(participantSummaries)
                 .createdAtDateTime(createdAt)
