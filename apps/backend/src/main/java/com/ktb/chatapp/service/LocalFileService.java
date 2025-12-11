@@ -52,10 +52,20 @@ public class LocalFileService implements FileService {
     }
 
     @Override
-    public FileUploadResult uploadFile(MultipartFile file, String uploaderId) {
+    public FileUploadResult uploadFile(MultipartFile file, String uploaderId, String roomId) {
         try {
             // 파일 보안 검증
             FileUtil.validateFile(file);
+            String normalizedRoomId = roomId != null && !roomId.isBlank() ? roomId : null;
+            
+            // roomId가 전달되면 업로더의 방 참가 여부를 검증한다.
+            if (normalizedRoomId != null) {
+                Room room = roomRepository.findById(normalizedRoomId)
+                        .orElseThrow(() -> new RuntimeException("방을 찾을 수 없습니다."));
+                if (!room.getParticipantIds().contains(uploaderId)) {
+                    throw new RuntimeException("채팅방에 대한 권한이 없습니다.");
+                }
+            }
 
             // 안전한 파일명 생성
             String originalFilename = file.getOriginalFilename();
@@ -85,6 +95,7 @@ public class LocalFileService implements FileService {
                     .size(file.getSize())
                     .path(filePath.toString())
                     .user(uploaderId)
+                    .roomId(normalizedRoomId)
                     .uploadDate(LocalDateTime.now())
                     .build();
 
@@ -151,18 +162,27 @@ public class LocalFileService implements FileService {
             File fileEntity = fileRepository.findByFilename(fileName)
                     .orElseThrow(() -> new RuntimeException("파일을 찾을 수 없습니다: " + fileName));
 
-            // 2. 메시지 조회 (파일과 메시지 연결 확인) - 효율적인 쿼리 메서드 사용
-            Message message = messageRepository.findByFileId(fileEntity.getId())
-                    .orElseThrow(() -> new RuntimeException("파일과 연결된 메시지를 찾을 수 없습니다"));
+            // 업로더는 메시지 생성 이전에도 미리보기/다운로드를 허용한다.
+            boolean isUploader = requesterId != null && requesterId.equals(fileEntity.getUser());
+            if (!isUploader) {
+                // 2. 메시지 또는 업로드 시점의 방 정보로 권한 확인
+                String roomId = messageRepository.findByFileId(fileEntity.getId())
+                        .map(Message::getRoomId)
+                        .orElse(fileEntity.getRoomId());
+                
+                if (roomId == null || roomId.isBlank()) {
+                    throw new RuntimeException("파일과 연결된 메시지를 찾을 수 없습니다");
+                }
 
-            // 3. 방 조회 (사용자가 방 참가자인지 확인)
-            Room room = roomRepository.findById(message.getRoomId())
-                    .orElseThrow(() -> new RuntimeException("방을 찾을 수 없습니다"));
+                // 3. 방 조회 (사용자가 방 참가자인지 확인)
+                Room room = roomRepository.findById(roomId)
+                        .orElseThrow(() -> new RuntimeException("방을 찾을 수 없습니다"));
 
-            // 4. 권한 검증
-            if (!room.getParticipantIds().contains(requesterId)) {
-                log.warn("파일 접근 권한 없음: {} (사용자: {})", fileName, requesterId);
-                throw new RuntimeException("파일에 접근할 권한이 없습니다");
+                // 4. 권한 검증
+                if (!room.getParticipantIds().contains(requesterId)) {
+                    log.warn("파일 접근 권한 없음: {} (사용자: {})", fileName, requesterId);
+                    throw new RuntimeException("파일에 접근할 권한이 없습니다");
+                }
             }
 
             // 5. 파일 경로 검증 및 로드

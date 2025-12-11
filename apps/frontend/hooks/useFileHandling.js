@@ -31,7 +31,8 @@ export const useFileHandling = (socketRef, currentUser, router, handleSessionErr
         file,
         (progress) => setUploadProgress(progress),
         currentUser.token,
-        currentUser.sessionId
+        currentUser.sessionId,
+        roomId
       );
 
       if (!uploadResponse.success) {

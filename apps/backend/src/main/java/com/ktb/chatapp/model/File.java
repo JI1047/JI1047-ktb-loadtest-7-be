@@ -37,6 +37,10 @@ public class File {
     @Field("user")
     @Indexed
     private String user;
+    
+    @Indexed
+    @Field("room")
+    private String roomId;
 
     @Field("uploadDate")
     @CreatedDate

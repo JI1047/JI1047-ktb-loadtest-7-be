@@ -59,12 +59,13 @@ public class FileController {
     @PostMapping("/upload")
     public ResponseEntity<?> uploadFile(
             @Parameter(description = "업로드할 파일") @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "roomId", required = false) String roomId,
             Principal principal) {
         try {
             User user = userRepository.findByEmail(principal.getName())
                     .orElseThrow(() -> new UsernameNotFoundException("User not found: " + principal.getName()));
 
-            FileUploadResult result = fileService.uploadFile(file, user.getId());
+            FileUploadResult result = fileService.uploadFile(file, user.getId(), roomId);
 
             if (result.isSuccess()) {
                 Map<String, Object> response = new HashMap<>();
@@ -78,6 +79,7 @@ public class FileController {
                 fileData.put("mimetype", result.getFile().getMimetype());
                 fileData.put("size", result.getFile().getSize());
                 fileData.put("uploadDate", result.getFile().getUploadDate());
+                fileData.put("roomId", result.getFile().getRoomId());
                 
                 response.put("file", fileData);
 

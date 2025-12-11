@@ -86,7 +86,8 @@ export const useMessageHandling = (socketRef, currentUser, router, handleSession
           messageData.fileData.file,
           (progress) => setUploadProgress(progress),
           currentUser.token,
-          currentUser.sessionId
+          currentUser.sessionId,
+          roomId
         );
 
        if (!uploadResponse.success) {

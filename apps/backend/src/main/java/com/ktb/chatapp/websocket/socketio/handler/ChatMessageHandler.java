@@ -147,22 +147,22 @@ public class ChatMessageHandler {
             }
 
             String messageType = data.getMessageType();
-            Message message = switch (messageType) {
+            MessageDraft messageDraft = switch (messageType) {
                 case "file" -> handleFileMessage(roomId, socketUser.id(), messageContent, data.getFileData());
-                case "text" -> handleTextMessage(roomId, socketUser.id(), messageContent);
+                case "text" -> new MessageDraft(handleTextMessage(roomId, socketUser.id(), messageContent), null);
                 default -> throw new IllegalArgumentException("Unsupported message type: " + messageType);
             };
 
-            if (message == null) {
+            if (messageDraft.message() == null) {
                 log.warn("Empty message - ignoring. room: {}, userId: {}, messageType: {}", roomId, socketUser.id(), messageType);
                 timerSample.stop(createTimer("ignored", messageType));
                 return;
             }
 
-            Message savedMessage = messageRepository.save(message);
+            Message savedMessage = messageRepository.save(messageDraft.message());
 
             socketIOServer.getRoomOperations(roomId)
-                    .sendEvent(MESSAGE, createMessageResponse(savedMessage, sender));
+                    .sendEvent(MESSAGE, createMessageResponse(savedMessage, sender, messageDraft.file()));
 
             // AI 멘션 처리
             aiService.handleAIMentions(roomId, socketUser.id(), messageContent);
@@ -187,7 +187,7 @@ public class ChatMessageHandler {
         }
     }
 
-    private Message handleFileMessage(String roomId, String userId, MessageContent messageContent, Map<String, Object> fileData) {
+    private MessageDraft handleFileMessage(String roomId, String userId, MessageContent messageContent, Map<String, Object> fileData) {
         if (fileData == null || fileData.get("_id") == null) {
             throw new IllegalArgumentException("파일 데이터가 올바르지 않습니다.");
         }
@@ -197,6 +197,15 @@ public class ChatMessageHandler {
 
         if (file == null || !file.getUser().equals(userId)) {
             throw new IllegalStateException("파일을 찾을 수 없거나 접근 권한이 없습니다.");
+        }
+        
+        // 파일이 다른 방에 묶여 있거나 아직 방 정보가 없는 경우 처리
+        if (file.getRoomId() != null && !roomId.equals(file.getRoomId())) {
+            throw new IllegalStateException("파일이 다른 채팅방에서 업로드되었습니다.");
+        }
+        if (file.getRoomId() == null) {
+            file.setRoomId(roomId);
+            fileRepository.save(file);
         }
 
         Message message = new Message();
@@ -215,7 +224,7 @@ public class ChatMessageHandler {
         metadata.put("originalName", file.getOriginalname());
         message.setMetadata(metadata);
 
-        return message;
+        return new MessageDraft(message, file);
     }
 
     private Message handleTextMessage(String roomId, String userId, MessageContent messageContent) {
@@ -234,7 +243,7 @@ public class ChatMessageHandler {
         return message;
     }
 
-    private MessageResponse createMessageResponse(Message message, User sender) {
+    private MessageResponse createMessageResponse(Message message, User sender, File attachedFile) {
         var messageResponse = new MessageResponse();
         messageResponse.setId(message.getId());
         messageResponse.setRoomId(message.getRoomId());
@@ -245,13 +254,19 @@ public class ChatMessageHandler {
         messageResponse.setSender(UserResponse.from(sender));
         messageResponse.setMetadata(message.getMetadata());
 
-        if (message.getFileId() != null) {
-            fileRepository.findById(message.getFileId())
-                    .ifPresent(file -> messageResponse.setFile(FileResponse.from(file)));
+        File file = attachedFile;
+        if (file == null && message.getFileId() != null) {
+            file = fileRepository.findById(message.getFileId()).orElse(null);
+        }
+
+        if (file != null) {
+            messageResponse.setFile(FileResponse.from(file));
         }
 
         return messageResponse;
     }
+
+    private record MessageDraft(Message message, File file) {}
 
     // Metrics helper methods
     private Timer createTimer(String status, String messageType) {

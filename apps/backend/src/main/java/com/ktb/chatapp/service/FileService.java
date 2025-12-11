@@ -5,7 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface FileService {
 
-    FileUploadResult uploadFile(MultipartFile file, String uploaderId);
+    FileUploadResult uploadFile(MultipartFile file, String uploaderId, String roomId);
 
     String storeFile(MultipartFile file, String subDirectory);
 
@@ -13,4 +13,3 @@ public interface FileService {
 
     boolean deleteFile(String fileId, String requesterId);
 }
-

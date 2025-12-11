@@ -74,7 +74,7 @@ class FileService {
     return { success: true };
   }
 
-  async uploadFile(file, onProgress, token, sessionId) {
+  async uploadFile(file, onProgress, token, sessionId, roomId) {
     const validationResult = await this.validateFile(file);
     if (!validationResult.success) {
       return validationResult;
@@ -83,6 +83,9 @@ class FileService {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      if (roomId) {
+        formData.append('roomId', roomId);
+      }
 
       const source = CancelToken.source();
       this.activeUploads.set(file.name, source);
