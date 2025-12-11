@@ -153,7 +153,7 @@ public class RoomService {
         }
     }
 
-    public Room createRoom(CreateRoomRequest createRoomRequest, String name) {
+    public RoomResponse createRoom(CreateRoomRequest createRoomRequest, String name) {
         User creator = userRepository.findByEmail(name)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + name));
 
@@ -168,16 +168,16 @@ public class RoomService {
         }
 
         Room savedRoom = roomRepository.save(room);
-        
+        RoomResponse roomResponse = mapNewRoomResponse(savedRoom, creator);
+
         // Publish event for room created
         try {
-            RoomResponse roomResponse = mapToRoomResponse(savedRoom, name);
             eventPublisher.publishEvent(new RoomCreatedEvent(this, roomResponse));
         } catch (Exception e) {
             log.error("roomCreated 이벤트 발행 실패", e);
         }
         
-        return savedRoom;
+        return roomResponse;
     }
 
     public Optional<Room> findRoomById(String roomId) {
@@ -217,6 +217,24 @@ public class RoomService {
         }
 
         return room;
+    }
+
+    private RoomResponse mapNewRoomResponse(Room room, User creator) {
+        UserResponse creatorSummary = UserResponse.from(creator);
+        List<UserResponse> participantSummaries = List.of(creatorSummary);
+
+        LocalDateTime createdAt = room.getCreatedAt() != null ? room.getCreatedAt() : LocalDateTime.now();
+
+        return RoomResponse.builder()
+                .id(room.getId())
+                .name(room.getName())
+                .hasPassword(room.isHasPassword())
+                .creator(creatorSummary)
+                .participants(participantSummaries)
+                .createdAtDateTime(createdAt)
+                .isCreator(true)
+                .recentMessageCount(0)
+                .build();
     }
 
     private RoomResponse mapToRoomResponse(Room room, String name) {
