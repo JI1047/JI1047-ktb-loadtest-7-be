@@ -1,10 +1,6 @@
 package com.ktb.chatapp.controller;
 
-import com.ktb.chatapp.dto.FileUploadRequest;
-import com.ktb.chatapp.dto.StandardResponse;
-import com.ktb.chatapp.dto.ProfileImageResponse;
-import com.ktb.chatapp.dto.UpdateProfileRequest;
-import com.ktb.chatapp.dto.UserResponse;
+import com.ktb.chatapp.dto.*;
 import com.ktb.chatapp.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -96,6 +92,38 @@ public class UserController {
         } catch (Exception e) {
             log.error("사용자 프로필 업데이트 중 오류 발생: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(StandardResponse.error("프로필 업데이트 중 오류가 발생했습니다."));
+        }
+    }
+    /**
+     * 프로필 이미지 조회
+     */
+    @Operation(summary = "프로필 이미지 조회", description = "프로필 이미지를 URL로 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "이미지 조회 성공",
+                    content = @Content(schema = @Schema(implementation = ProfileImageResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패",
+                    content = @Content(schema = @Schema(implementation = StandardResponse.class))),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = StandardResponse.class))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+                    content = @Content(schema = @Schema(implementation = StandardResponse.class)))
+    })
+    @GetMapping("/profile-image")
+    public ResponseEntity<?> getProfileImage(
+            Principal principal) {
+
+        try {
+            ProfileImageUrlResponse response = userService.getProfileImage(principal.getName());
+            return ResponseEntity.ok(response);
+        } catch (UsernameNotFoundException e) {
+            log.error("프로필 이미지 조회 실패 - 사용자 없음: {}", e.getMessage());
+            return ResponseEntity.status(404).body(StandardResponse.error("사용자를 찾을 수 없습니다."));
+        } catch (IllegalArgumentException e) {
+            log.error("프로필 이미지 조회 실패 - 잘못된 입력: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(StandardResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("프로필 이미지 조회 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(StandardResponse.error("이미지 조회 중 오류가 발생했습니다."));
         }
     }
 
