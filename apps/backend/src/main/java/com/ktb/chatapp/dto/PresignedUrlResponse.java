@@ -1,23 +1,17 @@
 package com.ktb.chatapp.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.Map;
 
 @Data
 @Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class ProfileImageResponse {
+public class PresignedUrlResponse {
     private boolean success;
-    private String message;
-    private String filename;
     private String uploadUrl;
-    private Instant expiresAt;
     private Map<String, String> headers;
     private FileResponse file;
+    private Instant expiresAt;
 }

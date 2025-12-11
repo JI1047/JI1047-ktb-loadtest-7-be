@@ -1,8 +1,5 @@
 package com.ktb.chatapp.model;
 
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +9,10 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Data
 @Builder
@@ -32,7 +33,10 @@ public class File {
 
     private long size;
 
-    private String path;
+    private String objectKey;
+
+    @Builder.Default
+    private FileCategory category = FileCategory.CHAT;
 
     @Field("user")
     @Indexed
@@ -48,10 +52,10 @@ public class File {
      */
     public boolean isPreviewable() {
         List<String> previewableTypes = Arrays.asList(
-            "image/jpeg", "image/png", "image/gif", "image/webp",
-            "video/mp4", "video/webm",
-            "audio/mpeg", "audio/wav",
-            "application/pdf"
+                "image/jpeg", "image/png", "image/gif", "image/webp",
+                "video/mp4", "video/webm",
+                "audio/mpeg", "audio/wav",
+                "application/pdf"
         );
         return previewableTypes.contains(this.mimetype);
     }
