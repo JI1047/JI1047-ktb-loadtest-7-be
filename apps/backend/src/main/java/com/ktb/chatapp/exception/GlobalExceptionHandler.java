@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -40,7 +41,7 @@ public class GlobalExceptionHandler {
 
         StandardResponse<Object> response = StandardResponse.error(ApiErrorCode.UNAUTHORIZED);
         response.setPath(request.getRequestURI());
-        return ResponseEntity.status(ApiErrorCode.UNAUTHORIZED.getHttpStatus()).body(response);
+        return json(ResponseEntity.status(ApiErrorCode.UNAUTHORIZED.getHttpStatus()), response);
     }
 
     /**
@@ -54,7 +55,7 @@ public class GlobalExceptionHandler {
 
         StandardResponse<Object> response = StandardResponse.error(ApiErrorCode.FORBIDDEN);
         response.setPath(request.getRequestURI());
-        return ResponseEntity.status(ApiErrorCode.FORBIDDEN.getHttpStatus()).body(response);
+        return json(ResponseEntity.status(ApiErrorCode.FORBIDDEN.getHttpStatus()), response);
     }
 
     /**
@@ -75,7 +76,7 @@ public class GlobalExceptionHandler {
 
         StandardResponse<Object> response = StandardResponse.validationError(errors);
         response.setPath(request.getRequestURI());
-        return ResponseEntity.badRequest().body(response);
+        return json(ResponseEntity.badRequest(), response);
     }
 
     /**
@@ -89,7 +90,7 @@ public class GlobalExceptionHandler {
 
         StandardResponse<Object> response = StandardResponse.error(ApiErrorCode.FILE_TOO_LARGE);
         response.setPath(request.getRequestURI());
-        return ResponseEntity.status(ApiErrorCode.FILE_TOO_LARGE.getHttpStatus()).body(response);
+        return json(ResponseEntity.status(ApiErrorCode.FILE_TOO_LARGE.getHttpStatus()), response);
     }
     
     /**
@@ -107,7 +108,7 @@ public class GlobalExceptionHandler {
             response.setStack(getStackTrace(ex));
         }
 
-        return ResponseEntity.status(ApiErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus()).body(response);
+        return json(ResponseEntity.status(ApiErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus()), response);
     }
     
     @ExceptionHandler(NoResourceFoundException.class)
@@ -130,7 +131,7 @@ public class GlobalExceptionHandler {
             response.setStack(getStackTrace(ex));
         }
 
-        return ResponseEntity.status(ApiErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus()).body(response);
+        return json(ResponseEntity.status(ApiErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus()), response);
     }
 
     private boolean isDevelopmentProfile() {
@@ -142,5 +143,11 @@ public class GlobalExceptionHandler {
         StringWriter stringWriter = new StringWriter();
         throwable.printStackTrace(new PrintWriter(stringWriter));
         return stringWriter.toString();
+    }
+
+    private ResponseEntity<StandardResponse<Object>> json(
+            ResponseEntity.BodyBuilder builder,
+            StandardResponse<Object> body) {
+        return builder.contentType(MediaType.APPLICATION_JSON).body(body);
     }
 }
