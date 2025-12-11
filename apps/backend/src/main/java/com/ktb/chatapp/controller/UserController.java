@@ -91,6 +91,7 @@ public class UserController {
 
     /**
      * 프로필 이미지 조회
+     *
      */
     @Operation(summary = "프로필 이미지 조회", description = "프로필 이미지를 URL로 조회합니다.")
     @ApiResponses({
