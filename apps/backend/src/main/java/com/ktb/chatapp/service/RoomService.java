@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.TaskExecutor;
@@ -24,8 +25,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.IdGenerator;
-import org.springframework.util.JdkIdGenerator;
 
 @Slf4j
 @Service
@@ -39,8 +38,6 @@ public class RoomService {
     private final ApplicationEventPublisher eventPublisher;
     @Qualifier("applicationTaskExecutor")
     private final TaskExecutor taskExecutor;
-
-    private final IdGenerator idGenerator = new JdkIdGenerator();
 
     public RoomsResponse getAllRoomsWithPagination(
             com.ktb.chatapp.dto.PageRequest pageRequest, String name) {
@@ -165,7 +162,7 @@ public class RoomService {
         User creator = userRepository.findByEmail(name)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + name));
 
-        String roomId = idGenerator.generateId().toString().replace("-", "");
+        String roomId = new ObjectId().toHexString();
         RoomResponse roomResponse = mapNewRoomResponse(roomId, createRoomRequest, creator);
 
         taskExecutor.execute(() -> {
