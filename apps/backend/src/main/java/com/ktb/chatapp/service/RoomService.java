@@ -267,11 +267,8 @@ public class RoomService {
             creator = userRepository.findById(room.getCreator()).orElse(null);
         }
 
-        List<User> participants = room.getParticipantIds().stream()
-            .map(userRepository::findById)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .toList();
+        // 개선: findAllById를 사용하여 한 번의 쿼리로 모든 참여자를 조회
+        List<User> participants = userRepository.findAllById(room.getParticipantIds());
 
         // 최근 10분간 메시지 수 조회
         LocalDateTime tenMinutesAgo = LocalDateTime.now().minusMinutes(10);
