@@ -3,6 +3,7 @@ package com.ktb.chatapp.websocket.socketio.handler;
 import com.ktb.chatapp.dto.FileResponse;
 import com.ktb.chatapp.dto.MessageResponse;
 import com.ktb.chatapp.dto.UserResponse;
+import com.ktb.chatapp.model.File;
 import com.ktb.chatapp.model.Message;
 import com.ktb.chatapp.model.User;
 import com.ktb.chatapp.repository.FileRepository;
@@ -11,6 +12,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,6 +34,13 @@ public class MessageResponseMapper {
      * @return MessageResponse DTO
      */
     public MessageResponse mapToMessageResponse(Message message, User sender) {
+        return mapToMessageResponse(message, sender, null);
+    }
+
+    /**
+     * 사전 로드된 파일 정보를 재사용하는 변환 오버로드
+     */
+    public MessageResponse mapToMessageResponse(Message message, User sender, @Nullable File file) {
         MessageResponse.MessageResponseBuilder builder = MessageResponse.builder()
                 .id(message.getId())
                 .content(message.getContent())
@@ -53,15 +62,18 @@ public class MessageResponseMapper {
                     .build());
         }
 
-        // 파일 정보 설정
-        Optional.ofNullable(message.getFileId())
-                .flatMap(fileRepository::findById)
-                .map(file -> FileResponse.builder()
-                        .id(file.getId())
-                        .filename(file.getFilename())
-                        .originalname(file.getOriginalname())
-                        .mimetype(file.getMimetype())
-                        .size(file.getSize())
+        // 파일 정보 설정 (사전 로드된 파일 우선 사용)
+        File resolvedFile = file;
+        if (resolvedFile == null && message.getFileId() != null) {
+            resolvedFile = fileRepository.findById(message.getFileId()).orElse(null);
+        }
+        Optional.ofNullable(resolvedFile)
+                .map(f -> FileResponse.builder()
+                        .id(f.getId())
+                        .filename(f.getFilename())
+                        .originalname(f.getOriginalname())
+                        .mimetype(f.getMimetype())
+                        .size(f.getSize())
                         .build())
                 .ifPresent(builder::file);
 

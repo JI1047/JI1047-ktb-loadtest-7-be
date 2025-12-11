@@ -3,14 +3,16 @@ package com.ktb.chatapp.websocket.socketio.handler;
 import com.ktb.chatapp.dto.FetchMessagesRequest;
 import com.ktb.chatapp.dto.FetchMessagesResponse;
 import com.ktb.chatapp.dto.MessageResponse;
+import com.ktb.chatapp.model.File;
 import com.ktb.chatapp.model.Message;
 import com.ktb.chatapp.model.User;
+import com.ktb.chatapp.repository.FileRepository;
 import com.ktb.chatapp.repository.MessageRepository;
 import com.ktb.chatapp.repository.UserRepository;
 import com.ktb.chatapp.service.MessageReadStatusService;
-import jakarta.annotation.Nullable;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,7 @@ public class MessageLoader {
 
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final FileRepository fileRepository;
     private final MessageResponseMapper messageResponseMapper;
     private final MessageReadStatusService messageReadStatusService;
 
@@ -64,16 +67,19 @@ public class MessageLoader {
         // DESC로 조회했으므로 ASC로 재정렬 (채팅 UI 표시 순서)
         List<Message> sortedMessages = messages.reversed();
         
-        var messageIds = sortedMessages.stream().map(Message::getId).toList();
+        List<String> messageIds = sortedMessages.stream().map(Message::getId).toList();
         messageReadStatusService.updateReadStatus(messageIds, userId);
         
-        // 메시지 응답 생성
+        Map<String, User> userIndex = loadUsers(sortedMessages);
+        Map<String, File> fileIndex = loadFiles(sortedMessages);
+
         List<MessageResponse> messageResponses = sortedMessages.stream()
-                .map(message -> {
-                    var user = findUserById(message.getSenderId());
-                    return messageResponseMapper.mapToMessageResponse(message, user);
-                })
-                .collect(Collectors.toList());
+                .map(message -> messageResponseMapper.mapToMessageResponse(
+                        message,
+                        userIndex.get(message.getSenderId()),
+                        fileIndex.get(message.getFileId())
+                ))
+                .toList();
 
         boolean hasMore = messagePage.hasNext();
 
@@ -86,15 +92,31 @@ public class MessageLoader {
                 .build();
     }
 
-    /**
-     * AI 경우 null 반환 가능
-     */
-    @Nullable
-    private User findUserById(String id) {
-        if (id == null) {
-            return null;
+    private Map<String, User> loadUsers(List<Message> messages) {
+        Set<String> senderIds = messages.stream()
+                .map(Message::getSenderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (senderIds.isEmpty()) {
+            return Collections.emptyMap();
         }
-        return userRepository.findById(id)
-                .orElse(null);
+
+        return userRepository.findAllById(senderIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+    }
+
+    private Map<String, File> loadFiles(List<Message> messages) {
+        Set<String> fileIds = messages.stream()
+                .map(Message::getFileId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (fileIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return fileRepository.findAllById(fileIds).stream()
+                .collect(Collectors.toMap(File::getId, Function.identity()));
     }
 }
