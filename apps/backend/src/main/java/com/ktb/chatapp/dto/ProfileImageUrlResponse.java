@@ -10,5 +10,5 @@ import lombok.Data;
 public class ProfileImageUrlResponse {
     boolean success;
     String message;
-    String profileImageUrl;
+    String imageUrl;
 }

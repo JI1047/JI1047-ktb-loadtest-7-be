@@ -67,7 +67,7 @@ public class UserService {
         return ProfileImageUrlResponse.builder()
                 .success(true)
                 .message("프로필 이미지를 조회합니다.")
-                .profileImageUrl(profileImageUrl)
+                .imageUrl(profileImageUrl)
                 .build();
     }
 
