@@ -1,4 +1,4 @@
-# Chat App Backend (Spring Boot)
+# Chat App Backend (Spring Boot) - dev branch
 
 ## 개요
 Spring Boot 3.5와 Java 21을 사용해 구축한 실시간 채팅 백엔드입니다. MongoDB를 통한 영속화와 MongoDB TTL 기반 세션·레이트리밋, JWT 인증, OpenAI 연동을 제공하며 Socket.IO 호환 실시간 메시징을 지원합니다.
