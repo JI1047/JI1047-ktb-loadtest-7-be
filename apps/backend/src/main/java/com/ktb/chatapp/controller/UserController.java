@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
 
@@ -109,7 +108,7 @@ public class UserController {
             Principal principal) {
 
         try {
-            ProfileImageResponse response = userService.getProfileImage(principal.getName());
+            ProfileImageUrlResponse response = userService.getProfileImage(principal.getName());
             return ResponseEntity.ok(response);
         } catch (UsernameNotFoundException e) {
             log.error("프로필 이미지 조회 실패 - 사용자 없음: {}", e.getMessage());
@@ -149,7 +148,7 @@ public class UserController {
             @Valid @RequestBody FileUploadRequest fileRequest) {
 
         try {
-            ProfileImageResponse response = userService.requestProfileImageUpload(principal.getName(), fileRequest);
+            ProfileImageResponse response = userService.uploadProfileImage(principal.getName(), fileRequest);
             return ResponseEntity.ok(response);
         } catch (UsernameNotFoundException e) {
             log.error("프로필 이미지 업로드 실패 - 사용자 없음: {}", e.getMessage());

@@ -1,17 +1,10 @@
 package com.ktb.chatapp.service;
 
-import com.ktb.chatapp.dto.FileUploadRequest;
-import com.ktb.chatapp.dto.PresignedUrlResponse;
-import com.ktb.chatapp.dto.ProfileImageResponse;
-import com.ktb.chatapp.dto.UpdateProfileRequest;
-import com.ktb.chatapp.dto.UserResponse;
-import com.ktb.chatapp.dto.ValidationError;
+import com.ktb.chatapp.dto.*;
 import com.ktb.chatapp.model.FileCategory;
 import com.ktb.chatapp.model.User;
 import com.ktb.chatapp.repository.FileRepository;
 import com.ktb.chatapp.repository.UserRepository;
-import com.ktb.chatapp.util.FileUtil;
-import io.micrometer.core.instrument.config.validate.ValidationException;
 import com.ktb.chatapp.util.ImageValidationUtil;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +55,7 @@ public class UserService {
      * 프로필 이미지 조회
      * @param email 사용자 이메일
      */
-    public ProfileImageResponse getProfileImage(String email) {
+    public ProfileImageUrlResponse getProfileImage(String email) {
         // 사용자 조회
         User user = userRepository.findByEmail(email.toLowerCase())
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
@@ -71,18 +64,18 @@ public class UserService {
 
         log.info("프로필 이미지 조회 완료 - User ID: {}, Image Url: {}", user.getId(), profileImageUrl);
 
-        return new ProfileImageResponse(
-                true,
-                "프로필 이미지를 조회합니다.",
-                profileImageUrl
-        );
+        return ProfileImageUrlResponse.builder()
+                .success(true)
+                .message("프로필 이미지를 조회합니다.")
+                .profileImageUrl(profileImageUrl)
+                .build();
     }
 
     /**
      * 프로필 이미지 업로드
      * @param email 사용자 이메일
      */
-    public ProfileImageResponse uploadProfileImage(String email, MultipartFile file) {
+    public ProfileImageResponse uploadProfileImage(String email, FileUploadRequest request) {
         // 사용자 조회
         User user = userRepository.findByEmail(email.toLowerCase())
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
@@ -99,7 +92,7 @@ public class UserService {
 
         PresignedUrlResponse presignedUrl = fileService.uploadFile(request, user.getId(), FileCategory.PROFILE);
 
-        user.setProfileImage(presignedUrl.getFile().getFilename());
+        user.setProfileImage(presignedUrl.getUploadUrl());
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
