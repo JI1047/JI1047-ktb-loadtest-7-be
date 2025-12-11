@@ -17,6 +17,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -77,6 +78,15 @@ public class GlobalExceptionHandler {
         StandardResponse<Object> response = StandardResponse.validationError(errors);
         response.setPath(request.getRequestURI());
         return json(ResponseEntity.badRequest(), response);
+    }
+    /**
+     * AsyncRequestNotUsableException 처리 (Broken Pipe 무시)
+     */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsableException(
+            AsyncRequestNotUsableException ex, HttpServletRequest request) {
+        log.info("Async request not usable (likely client aborted): {} - {}", request.getRequestURI(), ex.getMessage());
+        // 응답을 반환하지 않음 (이미 연결이 끊어짐)
     }
 
     /**
