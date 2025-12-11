@@ -254,7 +254,7 @@ public class RoomService {
                     .email(p.getEmail() != null ? p.getEmail() : "")
                     .build())
                 .collect(Collectors.toList()))
-            .createdAtDateTime(room.getCreatedAt())
+            .createdAtDateTime(room.getCreatedAt() != null ? room.getCreatedAt() : LocalDateTime.now())
             .isCreator(creator != null && creator.getId().equals(name))
             .recentMessageCount((int) recentMessageCount)
             .build();
