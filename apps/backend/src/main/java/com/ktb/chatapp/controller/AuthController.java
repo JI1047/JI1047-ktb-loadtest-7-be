@@ -168,8 +168,8 @@ public class AuthController {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             
-            // 단일 세션 정책을 위해 기존 세션 제거
-            sessionService.removeAllUserSessions(user.getId());
+//            // 단일 세션 정책을 위해 기존 세션 제거
+//            sessionService.removeAllUserSessions(user.getId());
 
             // Create new session
             SessionMetadata metadata = new SessionMetadata(
@@ -241,7 +241,7 @@ public class AuthController {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
                 String userId = (String) details.get("userId");
-                
+
                 if (userId != null) {
                     sessionService.removeSession(userId, sessionId);
                     
@@ -365,23 +365,23 @@ public class AuthController {
                         .body(new TokenRefreshResponse(false, "만료된 세션입니다.", null, null));
             }
 
-            // 세션 갱신 - 새로운 세션 ID 생성
-            sessionService.removeSession(user.getId(), sessionId);
-            SessionMetadata metadata = new SessionMetadata(
-                    request.getHeader("User-Agent"),
-                    getClientIpAddress(request),
-                    request.getHeader("User-Agent")
-            );
+//            // 세션 갱신 - 새로운 세션 ID 생성
+//            sessionService.removeSession(user.getId(), sessionId);
+//            SessionMetadata metadata = new SessionMetadata(
+//                    request.getHeader("User-Agent"),
+//                    getClientIpAddress(request),
+//                    request.getHeader("User-Agent")
+//            );
 
-            SessionCreationResult newSessionInfo = sessionService.createSession(user.getId(), metadata);
+//            SessionCreationResult newSessionInfo = sessionService.createSession(user.getId(), sessionId);
 
             // 새로운 토큰과 세션 ID 생성
             String newToken = jwtService.generateToken(
-                newSessionInfo.getSessionId(),
-                user.getEmail(),
-                user.getId()
+                    sessionId,
+                    user.getEmail(),
+                    user.getId()
             );
-            return ResponseEntity.ok(new TokenRefreshResponse(true, "토큰이 갱신되었습니다.", newToken, newSessionInfo.getSessionId()));
+            return ResponseEntity.ok(new TokenRefreshResponse(true, "토큰이 갱신되었습니다.", newToken, sessionId));
 
         } catch (Exception e) {
             log.error("Token refresh error: ", e);

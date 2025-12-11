@@ -31,8 +31,11 @@ public class File {
     private String mimetype;
 
     private long size;
+    
+    private String objectKey;
 
-    private String path;
+    @Builder.Default
+    private FileCategory category = FileCategory.CHAT;
 
     @Field("user")
     @Indexed

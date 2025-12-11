@@ -109,17 +109,17 @@ java -jar target/chat-app-0.0.1-SNAPSHOT.jar
 ### 실행 구성 사용
 
 1. IntelliJ IDEA에서 프로젝트를 엽니다
-2. 상단 툴바에서 **ChatAppApplication** 실행 구성을 선택합니다
+2. 상단 툴바에서 **com.ktb.chatapp.ChatAppApplication** 실행 구성을 선택합니다
 3. 실행(▶️) 또는 디버그(🐛) 버튼을 클릭합니다
 
 ### 실행 구성 세부 사항
 
-`.run/ChatAppApplication.run.xml` 파일이 다음 설정을 제공합니다:
+`.run/com.ktb.chatapp.ChatAppApplication.run.xml` 파일이 다음 설정을 제공합니다:
 
 - **Active Profile**: `dev` - 개발 환경 프로파일 사용
 - **Update Policy**: `UpdateClassesAndResources` - 코드 변경 시 자동 재로드
 - **Working Directory**: `apps/backend` - 프로젝트 루트 디렉토리
-- **Main Class**: `com.ktb.chatapp.ChatAppApplication`
+- **Main Class**: `com.ktb.chatapp.com.ktb.chatapp.ChatAppApplication`
 
 ### DevTools 자동 재시작
 

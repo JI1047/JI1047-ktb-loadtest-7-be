@@ -1,9 +1,9 @@
 # HELP application_ready_time_seconds Time taken for the application to be ready to service requests
 # TYPE application_ready_time_seconds gauge
-application_ready_time_seconds{application="ktb-chat-backend",main_application_class="com.ktb.chatapp.ChatAppApplication"} 11.612
+application_ready_time_seconds{application="ktb-chat-backend",main_application_class="com.ktb.chatapp.com.ktb.chatapp.ChatAppApplication"} 11.612
 # HELP application_started_time_seconds Time taken to start the application
 # TYPE application_started_time_seconds gauge
-application_started_time_seconds{application="ktb-chat-backend",main_application_class="com.ktb.chatapp.ChatAppApplication"} 11.469
+application_started_time_seconds{application="ktb-chat-backend",main_application_class="com.ktb.chatapp.com.ktb.chatapp.ChatAppApplication"} 11.469
 # HELP disk_free_bytes Usable space for path
 # TYPE disk_free_bytes gauge
 disk_free_bytes{application="ktb-chat-backend",path="/home/ubuntu/ktb-chat-backend/."} 6.7059712E8
