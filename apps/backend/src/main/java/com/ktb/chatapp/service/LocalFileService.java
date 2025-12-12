@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -162,45 +163,55 @@ public class LocalFileService implements FileService {
             File fileEntity = fileRepository.findByFilename(fileName)
                     .orElseThrow(() -> new RuntimeException("파일을 찾을 수 없습니다: " + fileName));
 
-            // 업로더는 메시지 생성 이전에도 미리보기/다운로드를 허용한다.
-            boolean isUploader = requesterId != null && requesterId.equals(fileEntity.getUser());
-            if (!isUploader) {
-                // 2. 메시지 또는 업로드 시점의 방 정보로 권한 확인
-                String roomId = messageRepository.findByFileId(fileEntity.getId())
-                        .map(Message::getRoomId)
-                        .orElse(fileEntity.getRoomId());
-                
-                if (roomId == null || roomId.isBlank()) {
-                    throw new RuntimeException("파일과 연결된 메시지를 찾을 수 없습니다");
-                }
-
-                // 3. 방 조회 (사용자가 방 참가자인지 확인)
-                Room room = roomRepository.findById(roomId)
-                        .orElseThrow(() -> new RuntimeException("방을 찾을 수 없습니다"));
-
-                // 4. 권한 검증
-                if (!room.getParticipantIds().contains(requesterId)) {
-                    log.warn("파일 접근 권한 없음: {} (사용자: {})", fileName, requesterId);
-                    throw new RuntimeException("파일에 접근할 권한이 없습니다");
-                }
-            }
-
-            // 5. 파일 경로 검증 및 로드
-            Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
-            FileUtil.validatePath(filePath, this.fileStorageLocation);
-
-            Resource resource = new UrlResource(filePath.toUri());
-            if (resource.exists()) {
-                log.info("파일 로드 성공: {} (사용자: {})", fileName, requesterId);
-                return resource;
-            } else {
-                throw new RuntimeException("파일을 찾을 수 없습니다: " + fileName);
-            }
-        } catch (MalformedURLException ex) {
-            log.error("파일 로드 실패: {}", ex.getMessage(), ex);
-            throw new RuntimeException("파일을 찾을 수 없습니다: " + fileName, ex);
+        // 2. 업로더 본인인 경우 즉시 접근 허용 (메시지 생성 전에도 접근 가능)
+        if (fileEntity.getUser().equals(requesterId)) {
+            return loadFileResource(fileName, requesterId);
         }
+
+        // 3. 메시지 조회 (파일과 메시지 연결 확인) - 효율적인 쿼리 메서드 사용
+        Optional<Message> messageOpt = messageRepository.findByFileId(fileEntity.getId());
+        
+        // 4. 메시지가 없는 경우 (아직 전송되지 않은 파일)
+        if (messageOpt.isEmpty()) {
+            log.warn("파일에 연결된 메시지 없음 (업로드 직후 상태일 수 있음): {} (요청자: {})", fileName, requesterId);
+            throw new RuntimeException("파일에 접근할 권한이 없습니다");
+        }
+
+        Message message = messageOpt.get();
+
+        // 5. 방 조회 (사용자가 방 참가자인지 확인)
+        Room room = roomRepository.findById(message.getRoomId())
+                .orElseThrow(() -> new RuntimeException("방을 찾을 수 없습니다"));
+
+        // 6. 권한 검증
+        if (!room.getParticipantIds().contains(requesterId)) {
+            log.warn("파일 접근 권한 없음: {} (사용자: {})", fileName, requesterId);
+            throw new RuntimeException("파일에 접근할 권한이 없습니다");
+        }
+
+        return loadFileResource(fileName, requesterId);
+        
+    } catch (MalformedURLException ex) {
+        log.error("파일 로드 실패: {}", ex.getMessage(), ex);
+        throw new RuntimeException("파일을 찾을 수 없습니다: " + fileName, ex);
     }
+}
+
+/**
+ * 실제 파일 리소스 로드 (공통 로직 추출)
+ */
+private Resource loadFileResource(String fileName, String requesterId) throws MalformedURLException {
+    Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
+    FileUtil.validatePath(filePath, this.fileStorageLocation);
+
+    Resource resource = new UrlResource(filePath.toUri());
+    if (resource.exists()) {
+        log.info("파일 로드 성공: {} (사용자: {})", fileName, requesterId);
+        return resource;
+    } else {
+        throw new RuntimeException("파일을 찾을 수 없습니다: " + fileName);
+    }
+}
 
     @Override
     public boolean deleteFile(String fileId, String requesterId) {
